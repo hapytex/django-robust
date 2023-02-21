@@ -1,6 +1,6 @@
-from enum import Enum, auto, EnumMeta, IntEnum
+from enum import auto, EnumMeta, IntEnum
 
-from django.core.checks import Error, Warning
+from django.core.checks import Debug, Error, Warning
 
 
 class CodeDispatcher(EnumMeta):
@@ -36,3 +36,7 @@ class RobustError(CodeDispatcher, app_name='django_robust', prefix='E', construc
 class RobustWarning(CodeDispatcher, app_name='django_robust', prefix='W', constructor=Warning):
     TemplateDoesNotExist = auto()
     InvalidSuccessUrl = auto()
+    InvalidTemplateUrlViewName = auto()
+
+class RobustDebug(CodeDispatcher, app_name='django_robust', prefix='D', constructor=Debug):
+    CanNotLookToUrlViewName = auto()

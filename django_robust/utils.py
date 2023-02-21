@@ -16,7 +16,7 @@ def get_app_configs(app_configs=None):
         return apps.get_app_configs()
     return app_configs
 
-def walk(item : T, *items: T, children_field=None) -> Iterable[T]:
+def walk(item : T, *items: T, children_field=iter) -> Iterable[T]:
     # we use a stack to avoid making recursive calls which are expensive and
     # can run out of call stack.
     if isinstance(children_field, str):
@@ -41,6 +41,20 @@ def walk(item : T, *items: T, children_field=None) -> Iterable[T]:
             stack.extend(to_add)
 
 
+def template_walker(template, using=None):
+    if isinstance(template, str):
+        template = get_template(template, using=using)
+    if hasattr(template, 'template'):
+        # loaded template
+        template = template.template
+    walker = walk(*template.compile_nodelist())
+    while True:
+        try:
+            node = next(walker)
+            # TODO: look for subblocks, etc.
+            yield node
+        except StopIteration:
+            break
 
 def get_subclasses(root_class: type[T]) -> Iterable[type[T]]:
     yield root_class
