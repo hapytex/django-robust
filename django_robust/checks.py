@@ -14,8 +14,9 @@ def check_templates_exist(app_configs, **kwargs):
         template_name = template_sub.template_name
         if template_name is not None and not template_exists(template_name):
             yield RobustWarning.TemplateDoesNotExist(
-                f'Template {template_name} defined on {template_sub} {get_file_loc(template_sub)} does not exist',
-                hint=f'Check if the template name {template_name} points to a valid file',
+                template_name=template_name,
+                template_sub=template_sub,
+                template_loc=get_file_loc(template_sub),
                 obj=template_sub,
             )
 
@@ -28,8 +29,9 @@ def check_view_success_url(app_configs, **kwargs):
                 str(success_url)
             except NoReverseMatch:
                 yield RobustWarning.InvalidSuccessUrl(
-                    f'Template {success_url} defined on {form_sub} {get_file_loc(form_sub)} does not exist',
-                    hint=f'Check if the template name {success_url} points to a valid view',
+                    success_url=success_url,
+                    form_sub=form_sub,
+                    form_loc=get_file_loc(form_sub),
                     obj=form_sub,
                 )
 
