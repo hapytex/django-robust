@@ -1,9 +1,12 @@
-from enum import auto, EnumMeta, IntEnum
+from enum import IntEnum
+from django.apps import apps
 
 from django.core.checks import Debug, Error, Warning, Info, Critical
 from django.utils.safestring import SafeString
 from itertools import count
 from django.core.checks import register
+
+from django.utils.translation import gettext_lazy
 
 
 class Untruthfull:
@@ -11,6 +14,7 @@ class Untruthfull:
         # to make optional computations convenient
         # x[y] is x for any y
         return self
+
     def __getattr__(self, item) -> 'Untruthfull':
         # to make optional computations convenient
         # x.y is x for any y
@@ -47,19 +51,32 @@ class CodeDispatcher(IntEnum):
             idx = next(cls.dispatcher)
             result = int.__new__(cls, idx)
             result._value_ = idx
+            if isinstance(val, str):
+                val = gettext_lazy(val)
             result.message = val
+            if isinstance(hint, str):
+                hint = gettext_lazy(hint)
             result.hint = hint
             result.tags = set(tags or ())
             return result
 
 
-    def __init_subclass__(cls, *, constructor, app_name, prefix=None, **kwargs):
+    def __init_subclass__(cls, *, constructor=None, app_name=None, prefix=None, **kwargs):
         super().__init_subclass__(**kwargs)
+        cls.app_name = app_name or apps.get_containing_app_config(cls.__module__).label
+        if constructor is None:
+            constructors = (Debug, Error, Warning, Info, Critical)
+            name = cls.__name__
+            for constructor in constructors:
+                if name.endswith(constructor.__name__):
+                    break
+            else:
+                raise ValueError('The constructor can not be determined based on the name of the enum class.')
+        cls.constructor = constructor
         if prefix is None:
+            assert isinstance(constructor, type), TypeError('The constructor needs to be a class.')
             prefix = constructor.__name__[:1].upper()
         cls.prefix = prefix
-        cls.app_name = app_name  # TODO: automatically derive
-        cls.constructor = constructor
         cls.dispatcher = count(1)
 
     def __str__(self):
@@ -81,10 +98,10 @@ class CodeDispatcher(IntEnum):
         return register(func, *self.tags)
 
 
-class RobustError(CodeDispatcher, app_name='django_robust', constructor=Error):
+class RobustError(CodeDispatcher):
     pass
 
-class RobustWarning(CodeDispatcher, app_name='django_robust', constructor=Warning):
+class RobustWarning(CodeDispatcher):
     TemplateDoesNotExist = (
         'Template {template_name} defined on {template_sub} {template_loc} does not exist',
         'Check if the template name {template_name} points to a valid file'
@@ -102,14 +119,14 @@ class RobustWarning(CodeDispatcher, app_name='django_robust', constructor=Warnin
         ''
     )
 
-class RobustDebug(CodeDispatcher, app_name='django_robust', constructor=Debug):
+class RobustDebug(CodeDispatcher):
     NoTransTagInTemplate = (
         '',
         ''
     )
 
-class RobustInfo(CodeDispatcher, app_name='django_robust', constructor=Info):
+class RobustInfo(CodeDispatcher):
     pass
 
-class RobustCritical(CodeDispatcher, app_name='django_robust', constructor=Critical):
+class RobustCritical(CodeDispatcher):
     pass

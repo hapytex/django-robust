@@ -1,7 +1,11 @@
 from operator import attrgetter
 from typing import TypeVar, Iterable
 
+from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
+from django.template.loader_tags import IncludeNode
+
+from django_robust.templates import is_simple_constant
 
 T = TypeVar('T')
 
@@ -37,10 +41,23 @@ def template_walker(template, using=None):
         # loaded template
         template = template.template
     walker = walk(*template.compile_nodelist())
-    while True:
-        try:
-            node = next(walker)
-            # TODO: look for subblocks, includes, etc.
+    try:
+        node = next(walker)
+        while True:
             yield node
-        except StopIteration:
-            break
+            old_node = node
+            node = None
+            # look for sub-blocks, includes, etc.
+            if isinstance(old_node, IncludeNode):
+                template_name = is_simple_constant(old_node.template)
+                if template_name is not None:
+                    try:
+                        template = get_template(template, using=using)
+                    except TemplateDoesNotExist:
+                        pass  # too bad, can not inspect
+                    else:
+                        node = walker.send(template.template.compile_node_list())
+            if node is None:
+                node = next(walker)
+    except StopIteration:
+        pass

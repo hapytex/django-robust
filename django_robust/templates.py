@@ -1,8 +1,10 @@
 import logging
+from typing import Optional
 
-from django_robust.constants import UNKNOWN, Untruthfull
-from django_robust.utils import get_request_from_stack, or_unknown, get_template_node_from_stack, \
-    get_template_location_from_stack
+from django.template.base import FilterExpression
+
+from django_robust.constants import Untruthfull
+from django_robust.utils import get_request_from_stack, or_unknown, get_template_location_from_stack
 
 logger = logging.getLogger('templates')
 
@@ -48,3 +50,10 @@ class InvalidVarException(Untruthfull, str):
     def __contains__(self, search):
         # Trick the system in believing the strings needs to be formatted
         return "%s" in search or super().__contains__(search)
+
+
+
+def is_simple_constant(expr: FilterExpression) -> Optional[str]:
+    if not expr.is_var and not expr.filters:
+        return expr.var
+    # otherwise, we return None

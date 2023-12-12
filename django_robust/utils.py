@@ -2,10 +2,13 @@ import inspect
 from itertools import islice
 from operator import attrgetter
 from typing import Iterable, TypeVar, Optional, Type, Union, Callable
+from typing import Iterable, TypeVar, Optional
 
 from django.apps import apps
 from django.http import HttpRequest
 from django.template import TemplateDoesNotExist, Node
+from django.template import TemplateDoesNotExist
+from django.template.base import FilterExpression
 from django.template.loader import get_template
 from django.views.generic.base import TemplateResponseMixin
 
