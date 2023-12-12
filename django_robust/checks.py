@@ -2,6 +2,7 @@ from django.core.checks import register
 from django.template.defaulttags import URLNode
 from django.urls import NoReverseMatch
 from django.views.generic.base import TemplateResponseMixin
+from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormMixin
 
 from django_robust.constants import RobustWarning
@@ -20,9 +21,26 @@ def check_templates_exist(app_configs, **kwargs):
                 obj=template_sub,
             )
 
+
 @register
 def check_view_success_url(app_configs, **kwargs):
     for form_sub in get_subclasses_for_apps(FormMixin, app_configs):
+        success_url = form_sub.success_url
+        if success_url is not None:
+            try:
+                str(success_url)
+            except NoReverseMatch:
+                yield RobustWarning.InvalidSuccessUrl(
+                    success_url=success_url,
+                    form_sub=form_sub,
+                    form_loc=get_file_loc(form_sub),
+                    obj=form_sub,
+                )
+
+
+@register
+def check_view_queryset(app_configs, **kwargs):
+    for form_sub in get_subclasses_for_apps(SingleObjectMixin, app_configs):
         success_url = form_sub.success_url
         if success_url is not None:
             try:

@@ -3,6 +3,7 @@ from enum import auto, EnumMeta, IntEnum
 from django.core.checks import Debug, Error, Warning, Info, Critical
 from django.utils.safestring import SafeString
 from itertools import count
+from django.core.checks import register
 
 
 class Untruthfull:
@@ -31,7 +32,7 @@ class Untruthfull:
 
 class Unknown(Untruthfull, SafeString):
     def __html__(self):
-        return '&#xfffd;'
+        return '&#xfffd;'  # �
 
 
 MISSING = Untruthfull()  # for fast lookups
@@ -39,7 +40,7 @@ UNKNOWN = Unknown('<unknown>')
 
 
 class CodeDispatcher(IntEnum):
-    def __new__(cls, val, hint=None):
+    def __new__(cls, val, hint=None, tags=None):
         if isinstance(val, (int, cls)):
             return super().__new__(cls, val)
         else:
@@ -48,6 +49,7 @@ class CodeDispatcher(IntEnum):
             result._value_ = idx
             result.message = val
             result.hint = hint
+            result.tags = set(tags or ())
             return result
 
 
@@ -75,6 +77,10 @@ class CodeDispatcher(IntEnum):
             id=str(self)
         )  # pass id
 
+    def register_check(self, func):
+        return register(func, *self.tags)
+
+
 class RobustError(CodeDispatcher, app_name='django_robust', constructor=Error):
     pass
 
@@ -86,6 +92,10 @@ class RobustWarning(CodeDispatcher, app_name='django_robust', constructor=Warnin
     InvalidSuccessUrl = (
         'Template {success_url} defined on {form_sub} {form_loc} does not exist',
         'Check if the template name {success_url} points to a valid view'
+    )
+    NoQuerySetConfigured = (
+        '',
+        'SingleObjectMixin',
     )
     InvalidTemplateUrlViewName = (
         '',  # TODO

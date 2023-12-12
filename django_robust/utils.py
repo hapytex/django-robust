@@ -63,6 +63,11 @@ def get_template_location_from_stack(var_name:str='self') -> str:
     return get_node_file_loc(get_template_node_from_stack(var_name=var_name))
 
 
+class AppConfigFilter:
+    def __init__(self, items):
+        pass
+
+
 
 def get_app_configs(app_configs=None):
     if app_configs is None:
