@@ -1,4 +1,5 @@
 import inspect
+import re
 from itertools import islice
 from operator import attrgetter
 from typing import Iterable, TypeVar, Optional, Type, Union, Callable
@@ -67,8 +68,24 @@ def get_template_location_from_stack(var_name:str='self') -> str:
 
 
 class AppConfigFilter:
-    def __init__(self, items):
-        pass
+    def __init__(self, app_configs):
+        if app_configs is None:
+            self.app_configs = apps.get_app_configs()
+        self.app_configs = get_app_configs
+
+    def __iter__(self):
+        return iter(self.app_configs)
+
+    @property
+    def module_prefixes(self):
+        return [app.module.__name__ for app in self.app_configs]
+
+    def get_subclasses_for_apps(self, root_class: Type[T]) -> Iterable[Type[T]]:
+        module_prefix = re.compile(f"^({'|'.join(re.escape(prefix) for prefix in self.module_prefixes)})($|[.])")
+        # TODO: filter apps
+        for subclass in get_subclasses(root_class):
+            if module_prefix.match(subclass.__module__):
+                yield subclass
 
 
 
@@ -119,3 +136,11 @@ def template_exists(template_name, using=None):
         return get_template(template_name, using=using)
     except TemplateDoesNotExist:
         return False
+
+
+def any_override(baseclass, subclass, *attributes):
+    assert issubclass(subclass, baseclass)
+    for attribute in attributes:
+        if getattr(baseclass, attribute, MISSING) is not getattr(subclass, attribute, MISSING):
+            return attribute
+    return False
